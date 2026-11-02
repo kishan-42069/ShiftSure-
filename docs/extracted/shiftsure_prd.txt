@@ -1,0 +1,742 @@
+--- PAGE 1 ---
+ShiftSure PRD  Prototype specification  Simulated data
+1
+SHIFTSURE
+Product Requirements Document
+Fair Workforce Reallocation During Automation and Disruption
+A build-ready specification for an almost-production-ready, fully working prototype.
+DOCUMENT DETAILS
+VALUE
+Version
+1.0
+Status
+Prototype specification
+Domain
+AI-assisted workforce decision support
+Hackathon
+SAP Hackfest Hackathon Bengaluru 2026
+Theme
+Inclusive Workforce
+Data policy
+Simulated workforce data; no live SAP integration claimed
+Deployment
+Not required for prototype acceptance
+Product principle
+When work disappears, ShiftSure helps organizations determine who can do the remaining work, what training is required,
+what the alternatives cost, and whether the proposed plan distributes disruption and opportunity fairly.
+Implementation priority: real optimization and deterministic calculations first; end-to-end workflow second; AI explanations after the core system is
+reliable.
+
+
+--- PAGE 2 ---
+SHIFTSURE  /  PRODUCT REQUIREMENTS
+ShiftSure PRD  Prototype specification  Simulated data
+2
+1. Executive Summary
+ShiftSure is a workforce decision-support platform designed to help organizations redeploy employees when automation, AI
+adoption, or operational disruptions reduce the amount of available work. Instead of immediately sending workers home,
+reducing overtime opportunities, or recruiting externally, ShiftSure identifies available internal capacity, matches workers to
+suitable open tasks, evaluates short training bridges, and measures fairness and economic implications.
+The platform combines deterministic business rules, mathematical optimization, workforce data, fairness analytics, and an
+explanation layer. Managers retain control over every final decision.
+Prototype boundaries
+ One simulated plant with two to three production lines and approximately 50–100 simulated workers.
+ 
+ Configurable disruption scenarios and idle-hours calculation.
+ 
+ Actual constraint-based workforce optimization, not random assignments.
+ 
+ Internal redeployment, training recommendations, and internal-versus-external hiring comparisons.
+ 
+ Fairness metrics, counterfactual testing, manager approval, worker-facing views, and audit history.
+ 
+ Local execution; cloud deployment, live SAP integration, and production infrastructure are not mandatory.
+ 
+2. Problem Statement
+When automation or disruption reduces the workload on a production line, managers must decide whether to redeploy
+workers, provide training, reduce overtime, or recruit externally. Decisions made under time pressure and with incomplete
+information can leave internal capacity unused, distribute lost work unevenly, overlook training opportunities, or create safety
+and transparency risks.
+Problems ShiftSure addresses
+ Underutilized capacity: employees have available hours while other teams have unfilled work.
+ 
+ Unequal disruption: idle hours, lost overtime, and training access may be distributed unevenly.
+ 
+ Missed internal opportunities: potentially suitable employees may be overlooked in favor of external recruitment.
+ 
+ Safety and compliance risk: assignments may violate certification, shift, availability, or location rules.
+ 
+ Insufficient transparency: workers and managers may not know why an assignment was recommended or rejected.
+ 
+3. Goals, Non-Goals, and Scope
+3.1 Product goals
+ID
+Goal
+Expected outcome
+G-01
+Reduce avoidable idle hours
+Calculate idle hours before and after reallocation.
+G-02
+Increase task coverage
+Match eligible workers to open tasks.
+G-03
+Prioritize internal talent
+Identify training bridges before external hiring.
+G-04
+Enforce constraints
+Prevent recommendations that violate hard rules.
+G-05
+Measure fairness
+Compare idle time, overtime loss, and training access.
+G-06
+Explain decisions
+Provide evidence-based reasons for matches and exclusions.
+G-07
+Preserve human control
+Require authorized manager approval.
+G-08
+Ensure reproducibility
+Persist inputs, plan versions, results, and audit history.
+G-09
+Demonstrate value
+Compare three allocation strategies using consistent metrics.
+3.2 Non-goals
+ No real employee actions, automated transfers, dismissals, promotions, or external hiring.
+ 
+ No claims that fairness metrics prove fairness or legal compliance.
+ 
+
+--- PAGE 3 ---
+SHIFTSURE  /  PRODUCT REQUIREMENTS
+ShiftSure PRD  Prototype specification  Simulated data
+3
+ No live SAP integration, multi-site planning, cloud deployment, or CI/CD requirement.
+ 
+ No LLM-generated assignments, fabricated metrics, or LLM overrides of hard constraints.
+ 
+ No inference of sensitive employee attributes from surveillance or behavioral data.
+ 
+4. Target Users
+Persona
+Needs
+Primary actions
+Plant / Operations Manager
+Restore coverage and compare plans.
+Create scenarios, review assignments, approve/reject plans.
+HR / Workforce Analyst
+Evaluate internal talent, training, cost, and
+disparities.
+Review skills, hiring comparisons, fairness metrics, and what-if
+tests.
+Employee / Worker
+Understand proposed assignments and correct
+records.
+View authorized information, read explanations, submit
+corrections.
+Demo Operator / Admin
+Maintain a repeatable simulated environment.
+Load/reset data, configure scenarios, inspect run status and
+errors.
+5. Feature Priorities
+Feature
+Priority
+Acceptance scope
+Simulated plant and workforce dataset
+P0
+Seed 50–100 workers and tasks.
+Disruption and idle-hours calculation
+P0
+Scenario inputs produce tested calculations.
+Constraint-based optimizer
+P0
+Actual solver, hard-rule validation, explicit infeasibility.
+Three-way plan comparison
+P0
+Baseline, optimizer without fairness, fairness-balanced plan.
+Training and hiring comparison
+P0
+Explicit costs, lead times, assumptions.
+Fairness dashboard and counterfactual
+P0
+Computed metrics, group denominators, controlled what-if.
+Manager approval and audit log
+P0
+Persisted state transitions and history.
+Worker view and correction requests
+P0
+Authorized view and auditable correction workflow.
+Evidence-grounded LLM explanations
+P1
+Add after deterministic core; fallback required.
+CSV import/export
+P1
+Implement where practical.
+Live SAP, cloud deployment, multi-site planning
+Out of scope / future
+Not required for prototype acceptance.
+6. Functional Requirements
+6.1 Workforce and task data
+ FR-001: Worker records include unique ID, role, line/site, shift, available hours, skills, proficiency, certification status,
+ employment category, and relevant overtime data.
+ FR-002: Task records include ID, destination, demand/headcount, required skills, mandatory certifications, shift, hours, and
+ training/cost assumptions.
+ FR-003: Reject or flag duplicate IDs, negative hours, invalid dates, missing mandatory fields, and impossible requirements.
+ 
+ FR-004: Clearly label seeded data and generated results as simulated in the UI and exports.
+ 
+ FR-005: Workers can submit skill corrections; changes remain pending until authorized review. Approved changes are
+ auditable and can trigger re-planning.
+6.2 Disruption scenarios
+ FR-006: Managers can create or configure an automation or operational disruption.
+ 
+ FR-007: Scenario parameters include affected lines, workload reduction or remaining workload, planning period, and optional
+ duration.
+ FR-008: Calculate idle capacity using workload, existing commitments, and planning-period assumptions; do not treat an
+ entire shift as idle automatically.
+
+
+--- PAGE 4 ---
+SHIFTSURE  /  PRODUCT REQUIREMENTS
+ShiftSure PRD  Prototype specification  Simulated data
+4
+ FR-009: Scenario execution must not silently alter base workforce data or existing approved plans.
+ 
+6.3 Reallocation optimizer
+ FR-010: Use Google OR-Tools or an equivalent real constraint solver against actual records.
+ 
+ FR-011: Enforce certification, skill eligibility, shift, availability, location, capacity, non-overlap, and task-demand rules.
+ 
+ FR-012: Support configurable objectives for coverage, idle hours, training burden, external hiring, and fairness.
+ 
+ FR-013: Persist solver status, assignments, unfilled demand, objective settings, and relevant inputs.
+ 
+ FR-014: Explicitly report infeasible, timed-out, feasible, or optimal outcomes; never fabricate assignments.
+ 
+ FR-015: Use versioned inputs and document solver behavior where multiple equivalent solutions exist.
+ 
+6.4 Three-way comparison
+ FR-016: Compare (1) a documented deterministic supervisor-style baseline, (2) optimization without fairness balancing, and
+ (3) fairness-balanced optimization.
+ FR-017: Evaluate all plans using consistent definitions: idle hours, task coverage, internal fill, unfilled demand, training
+ cost/time, hiring cost/lead time, overtime loss where available, and fairness metrics.
+ FR-018: Explain trade-offs; do not claim one plan is universally best regardless of priorities.
+ 
+6.5 Training and hiring
+ FR-019: Identify workers who qualify now or may qualify after a permitted training bridge.
+ 
+ FR-020: Show missing skills, training duration, estimated cost, and remaining qualification requirements.
+ 
+ FR-021: Compare internal training with configurable external recruitment cost and lead-time estimates.
+ 
+ FR-022: Present options for human review; do not initiate hiring or promise qualification.
+ 
+6.6 Fairness and counterfactual testing
+ FR-023: Calculate idle hours, overtime loss where data exists, training access, and relevant redeployment opportunities.
+ 
+ FR-024: Compare configured groups such as contract/permanent and shifts; use demographic data only when appropriate
+ and available.
+ FR-025: Make review thresholds configurable and identify them as policy settings.
+ 
+ FR-026: Flag disparities for review, not as proof of discrimination.
+ 
+ FR-027: Fairness objectives cannot override hard safety, certification, or eligibility constraints.
+ 
+ FR-028: Run a counterfactual changing one non-job attribute while holding job-relevant factors constant.
+ 
+ FR-029: Show assignment changes, affected workers/tasks, metric differences, and changed/unchanged assumptions.
+ 
+ FR-030: Use equivalent solver settings and account for tie-breaking among equally optimal solutions.
+ 
+ FR-031: Treat changes as review signals, not conclusive proof of unfairness; unchanged outcomes do not prove fairness.
+ 
+6.7 Explanations, approvals, and audit
+ FR-032: Explain recommendations from recorded attributes, task requirements, rules, and solver evidence.
+ 
+ FR-033: LLMs may verbalize structured evidence but may not calculate authoritative metrics, invent facts, change results,
+ override rules, or approve plans.
+ FR-034: Provide deterministic template-based explanations if the LLM is unavailable or returns invalid output.
+ 
+ FR-035: Each explanation should reference the supporting assignment, rule, constraint, or calculation.
+ 
+ FR-036: Managers can review assignments, unfilled tasks, training, costs, fairness flags, and solver status.
+ 
+ FR-037: Support Draft, Generated, Pending Approval, Approved, Rejected, and Superseded states with valid transitions.
+ 
+ FR-038: Only authorized managers can approve/reject; rejection requires a recorded reason.
+ 
+ FR-039: Submitted plans preserve reviewed inputs/results; material changes require a new version or renewed review.
+ 
+ FR-040: Audit scenario changes, solver runs, correction requests, rule changes, and approval decisions.
+ 
+
+--- PAGE 5 ---
+SHIFTSURE  /  PRODUCT REQUIREMENTS
+ShiftSure PRD  Prototype specification  Simulated data
+5
+ FR-041: Approval changes prototype status only; it does not execute real-world transfers or update SAP.
+ 
+7. UX and Interface Requirements
+Manager workspace
+ Overview: scenario, affected lines, available hours, open tasks, and planning status.
+ 
+ Scenario configuration: create and edit disruption events.
+ 
+ Plan comparison: side-by-side strategy comparison.
+ 
+ Assignment review: matches, eligibility evidence, training, and unfilled tasks.
+ 
+ Fairness analysis: metrics, group sizes, thresholds, and review flags.
+ 
+ Hiring comparison: training and recruitment costs and time estimates.
+ 
+ Approval and history: state, approval controls, versions, and audit events.
+ 
+Worker workspace
+ Show only the worker's authorized proposed/approved assignment information.
+ 
+ Explain recommendation or non-selection where evidence supports it.
+ 
+ Show recorded skills/certifications and a correction request form with status.
+ 
+ Clearly distinguish proposed assignments from manager-approved decisions.
+ 
+Interaction quality
+ Implement loading, empty, success, warning, and error states.
+ 
+ Every visible action has a defined outcome; forms validate inputs.
+ 
+ Use meaningful units and labels; never rely on color alone.
+ 
+ Explain fairness flags and confirm destructive actions.
+ 
+8. System Architecture
+Layer
+Technology
+Responsibility
+Frontend
+React + TypeScript
+Manager/worker interfaces and API integration.
+Backend
+Python + FastAPI
+Validation, APIs, workflow, permissions.
+Optimization
+Google OR-Tools
+Constraint-based allocation.
+Database
+SQLite
+Persistent prototype records and history.
+Analytics
+Python
+Idle hours, hiring comparisons, fairness metrics.
+Explanation
+Optional LLM + deterministic fallback
+Evidence-grounded natural language only.
+Testing
+Pytest + frontend test tools
+Unit, integration, regression, and end-to-end tests.
+Logical services
+ Data/validation service: workers, tasks, skills, certifications, shifts.
+ 
+ Scenario engine: disruption configuration and workload impact.
+ 
+ Optimization service: solver model, validation, status, and results.
+ 
+ Hiring comparison service: internal training and external estimates.
+ 
+ Fairness analytics: metrics, group comparisons, thresholds, counterfactuals.
+ 
+ Explanation service: natural language over structured evidence.
+ 
+ Approval/audit service: permissions, state transitions, versions, history.
+ 
+ Frontend: accessible views and API-driven workflows.
+ 
+
+--- PAGE 6 ---
+SHIFTSURE  /  PRODUCT REQUIREMENTS
+ShiftSure PRD  Prototype specification  Simulated data
+6
+Architecture principles: keep business logic out of UI components; use one authoritative source per metric; validate solver
+output independently; persist plan snapshots; make failure states explicit; run locally without cloud services.
+9. Data Model
+Entity
+Key fields / purpose
+Worker
+ID, display name, role, site, shift, employment type, availability.
+Skill / WorkerSkill
+Skill definitions, proficiency, verification status.
+Certification
+Worker, certification type, validity dates, status.
+Task
+Role, site, shift, skills/certifications, hours, headcount.
+DisruptionScenario
+Event type, affected lines, workload change, planning period.
+TrainingBridge
+Worker/task, missing skills, duration, estimated cost.
+OptimizationRun
+Scenario, solver status, objective settings, timestamps.
+Plan / Assignment
+Strategy, version, state; worker-task hours and eligibility evidence.
+MetricSnapshot
+Plan, metric name/value, group, denominator, definition.
+CounterfactualRun
+Baseline run, changed attribute, comparison results.
+CorrectionRequest
+Worker, requested correction, status, reviewer.
+Approval
+Plan, manager, decision, reason, timestamp.
+AuditEvent
+Actor, action, entity, timestamp, event details.
+HiringEstimate
+Role/task, recruitment cost, lead time, assumptions.
+Integrity rules: unique IDs; validated foreign keys; no over-capacity or overlapping assignments; valid plan references;
+retained superseded versions; metrics tied to plan definitions; and restricted access to sensitive attributes.
+10. Optimization Model
+Decision variables
+Let x■■ represent the hours assigned to worker i for task j. Binary assignment variables may be added for tasks requiring
+discrete worker selection.
+Hard constraints
+Worker capacity: Σ■ x■■ ≤ H■, where H■ is available capacity in the planning period.
+Task demand: Σ■ x■■ ≤ D■, where D■ is task demand. Minimum required coverage can be modeled separately.
+ Ineligible worker-task combinations receive no assignment.
+ 
+ Mandatory certifications must be valid for the task.
+ 
+ Shift, availability, location, capacity, and non-overlap rules must be enforced.
+ 
+ Training only changes eligibility where task rules explicitly permit qualification after training.
+ 
+Objective strategy
+A conceptual configurable objective is:
+Maximize: w■C − w■I − w■T − w■H − w■F
+C = covered demand; I = avoidable idle hours; T = training burden; H = external hiring burden; F = configured fairness
+penalty; w values = documented weights. This is a conceptual model, not a mandate to combine every metric into an
+uncalibrated score. Avoid double-counting equivalent costs. Safety and mandatory eligibility remain hard constraints.
+Solver validation
+ Validate certifications, capacity, shifts, overlaps, task eligibility, demand, and training pathways independently.
+ 
+ Reject plans that fail validation.
+ 
+
+--- PAGE 7 ---
+SHIFTSURE  /  PRODUCT REQUIREMENTS
+ShiftSure PRD  Prototype specification  Simulated data
+7
+ Report optimal, feasible, infeasible, or timed-out states accurately.
+ 
+11. Fairness Measurement
+Metric
+Method
+Interpretation safeguard
+Idle hours
+Group total and average per eligible worker.
+Compare denominators and absolute/relative gaps.
+Overtime loss
+Baseline opportunities versus scenario outcome, when data
+exists.
+Missing data is unavailable, not zero.
+Training access
+Eligible workers offered training and recommendation rates.
+Distinguish offers from successful qualification.
+Counterfactual sensitivity
+Compare assignments after controlled attribute change.
+Account for tie-breaking and equivalent solutions.
+Show group sizes, denominators, missing-data warnings, and definitions. Thresholds are review policies, not universal
+fairness standards. Disparities warrant investigation but do not by themselves prove discrimination or legal non-compliance.
+12. API Contract
+Method
+Endpoint
+Purpose
+GET
+/api/health
+Local application health.
+GET / POST
+/api/workers
+List/create workers.
+GET
+/api/workers/{id}
+Retrieve authorized worker record.
+POST
+/api/corrections
+Submit skill correction.
+GET
+/api/tasks
+List open tasks.
+POST
+/api/scenarios
+Create disruption scenario.
+GET
+/api/scenarios/{id}
+Read scenario.
+POST
+/api/scenarios/{id}/calculate
+Calculate workload impact.
+POST
+/api/scenarios/{id}/optimize
+Generate optimization run.
+GET
+/api/runs/{id}
+Read run status/results.
+GET
+/api/runs/{id}/compare
+Three-way comparison.
+GET
+/api/plans/{id}
+Plan and assignment details.
+GET
+/api/plans/{id}/fairness
+Fairness metrics.
+POST
+/api/plans/{id}/submit
+Submit for approval.
+POST
+/api/plans/{id}/approve
+Authorized approval.
+POST
+/api/plans/{id}/reject
+Reject with reason.
+POST
+/api/counterfactuals
+Run what-if comparison.
+GET
+/api/audit
+Authorized audit history.
+GET
+/api/reports/{id}
+Retrieve report.
+API behavior: validate inputs; use appropriate status codes; enforce backend authorization; reject invalid state transitions;
+distinguish business-rule failures from server errors; protect private worker data; expose solver failures explicitly.
+Long-running runs may use status polling if synchronous execution is impractical.
+13. Security, Privacy, and Reliability
+Security
+ Enforce role-based authorization in the backend; never rely on frontend-only checks.
+ 
+ Validate and sanitize input; use safe database access patterns.
+ 
+ Keep secrets outside source control and LLM credentials outside application code.
+ 
+ Restrict sensitive worker data and audit history.
+ 
+
+--- PAGE 8 ---
+SHIFTSURE  /  PRODUCT REQUIREMENTS
+ShiftSure PRD  Prototype specification  Simulated data
+8
+Privacy
+ Use fictional identities and simulated attributes.
+ 
+ Collect only data needed for the prototype.
+ 
+ Do not infer sensitive attributes or send unnecessary personal data to an LLM.
+ 
+ Separate sensitive attributes from operational assignment inputs wherever practical.
+ 
+Reliability
+ Handle missing/inconsistent data explicitly and roll back incomplete transactions.
+ 
+ Preserve plan versions and prevent misleading approval states after errors.
+ 
+ Use deterministic seed/reset procedures.
+ 
+ Log failures without unnecessarily logging sensitive data.
+ 
+The prototype is not certified for real employment decisions. Real-world use would require legal, privacy, security,
+operational, and workforce-policy review.
+14. Non-Functional Requirements
+ID
+Requirement
+Acceptance expectation
+NFR-001
+Usability
+Core manager workflow without developer intervention.
+NFR-002
+Integrity
+Reject invalid assignments and state transitions.
+NFR-003
+Auditability
+Trace material changes to events.
+NFR-004
+Reproducibility
+Equivalent versioned inputs yield equivalent explainable outcomes.
+NFR-005
+Maintainability
+Separate optimizer, metrics, APIs, and UI.
+NFR-006
+Performance
+50–100-worker seeded scenario completes in practical local-demo time.
+NFR-007
+Error handling
+Actionable errors, no silent failures.
+NFR-008
+Accessibility
+Keyboard use, clear labels, status not conveyed by color alone.
+NFR-009
+Data isolation
+Workers cannot access unauthorized records.
+NFR-010
+Calculation correctness
+Documented formulas with independent tests.
+15. Evaluation and Success Metrics
+Operational metrics
+Idle hours avoided = baseline idle hours − plan idle hours.
+Task coverage = covered demand ÷ total required demand × 100. Define demand consistently in hours, units, or task slots.
+Internal fill rate measures the share of covered demand or filled positions satisfied by existing employees. State the
+denominator. Compare training and hiring estimates using explicit costs, lead times, and assumptions.
+Fairness and quality
+ Maximum group-level difference in average idle hours.
+ 
+ Overtime-loss differences when baseline data exists.
+ 
+ Training-offer-rate differences among eligible workers.
+ 
+ Assignment sensitivity in counterfactual testing.
+ 
+ Hard-constraint violations in accepted plans: zero.
+ 
+ Recommendations with traceable explanations.
+ 
+ Correct rejection of invalid inputs and unauthorized approval attempts.
+ 
+ Successful completion of core end-to-end tests.
+ 
+
+--- PAGE 9 ---
+SHIFTSURE  /  PRODUCT REQUIREMENTS
+ShiftSure PRD  Prototype specification  Simulated data
+9
+Repeatable demo scenario
+ Simulate an automation rollout that substantially reduces workload on one line.
+ 
+ Calculate idle capacity and identify open tasks.
+ 
+ Generate and compare the three allocation strategies.
+ 
+ Show operational metrics, fairness outcomes, and trade-offs.
+ 
+ Identify training bridges and compare with external hiring estimates.
+ 
+ Run a counterfactual test.
+ 
+ Submit the plan for manager review and approval/rejection.
+ 
+ Show worker-facing explanations and audit history.
+ 
+Every result must be generated by the implemented system and labelled as simulated. No impact figures should be claimed
+before measurement.
+16. Testing Strategy
+Test level
+Required coverage
+Unit
+Idle-hours math, task demand, certification validity, capacity, hiring estimates, fairness formulas, counterfactuals, state
+transitions.
+Optimizer
+Feasible allocation, missing certification, no eligible candidate, insufficient capacity, shift/location restrictions, training bridge,
+fairness trade-off, equivalent optima, timeout/infeasibility.
+API/integration
+Scenario-to-plan flow, persistence, role authorization, worker data isolation, correction review, approvals, audit, error recovery.
+Frontend
+Scenario validation, comparison, assignment review, fairness states, worker corrections, approvals, loading/error/empty states.
+End-to-end
+Complete workflow from disruption creation to manager decision with metrics, persistence, explanations, and audit history.
+17. Acceptance Checklist
+ ■ Application starts locally with documented setup instructions.
+ 
+ ■ Seed data creates two to three lines and approximately 50–100 simulated workers.
+ 
+ ■ Disruption scenarios and tested idle-hours calculations work.
+ 
+ ■ Real optimizer generates assignments and respects hard constraints.
+ 
+ ■ Infeasible scenarios are reported accurately; no fabricated assignments.
+ 
+ ■ Three comparable plans are generated and evaluated.
+ 
+ ■ Training and external hiring are compared with explicit assumptions.
+ 
+ ■ Fairness metrics and controlled counterfactual tests work.
+ 
+ ■ Managers can approve/reject through the interface with authorization.
+ 
+ ■ Workers can view authorized data and submit skill corrections.
+ 
+ ■ Plan versions and material actions persist in the audit log.
+ 
+ ■ Explanations use real evidence; the core workflow works without an LLM.
+ 
+ ■ Automated tests cover critical logic, constraints, permissions, and state transitions.
+ 
+ ■ Simulated data and estimates are clearly labelled.
+ 
+ ■ No real-world workforce actions or live SAP integration are claimed.
+ 
+
+--- PAGE 10 ---
+SHIFTSURE  /  PRODUCT REQUIREMENTS
+ShiftSure PRD  Prototype specification  Simulated data
+10
+18. Implementation Roadmap
+Phase
+Work
+Exit condition
+1. Foundation
+Repository, local environment, schema, seed data, validation, APIs,
+navigation.
+Simulated workforce and tasks load and validate.
+2. Core logic
+Disruption scenarios, idle hours, hard rules, OR-Tools model, solver
+validation.
+Scenario yields a valid plan or explicit
+infeasibility.
+3. Decision intelligence
+Three strategies, hiring comparison, fairness metrics, counterfactual.
+Three plans compared using tested calculations.
+4. Product workflow
+Manager/worker views, approvals, corrections, versioning, audit,
+authorization.
+Main workflow runs through the UI without
+manual DB edits.
+5. Quality/demo
+LLM fallback, automated tests, edge cases, UI states, repeatable demo.
+Reliable end-to-end demonstration with no
+fabricated outputs.
+19. Future Scope
+ Authorized SAP SuccessFactors and scheduling integrations.
+ 
+ Approved import of real workforce data.
+ 
+ Multi-site redeployment and larger solver models.
+ 
+ Customer-configurable labor rules and policy packs.
+ 
+ Advanced fairness objectives and sensitivity analysis.
+ 
+ Enterprise identity, audit, backup, monitoring, and deployment infrastructure.
+ 
+These are future possibilities, not prerequisites for prototype acceptance.
+20. Product Differentiation
+ Reallocation after work disappears, not only filling staffing shortages.
+ 
+ Measurable fairness and explicit trade-offs rather than unverified AI claims.
+ 
+ Training and internal hiring comparisons before external recruitment.
+ 
+ Worker-facing explanations and correctable records.
+ 
+ Counterfactual sensitivity testing for non-job attributes.
+ 
+ Human approval and traceable decisions.
+ 
+ Separation of solver outputs from LLM explanations.
+ 
+The claim that these capabilities are unique relative to SAP or partner products must be validated before being presented as
+established market fact.
+21. Final Definition of Done
+ShiftSure is complete as a prototype when it can take a simulated automation disruption, calculate workforce impact, produce
+and validate alternative reallocation plans, compare internal training with external hiring, measure fairness, explain
+recommendations, support worker corrections, and record an authorized manager's decision.
+A locally runnable, fully functional decision-support application with real optimization,
+deterministic metrics, human approval, persistent history, test coverage, and a repeatable
+demonstration using clearly labelled simulated data.
+Deployment and live enterprise integration are deliberately excluded from the definition of done.
+
+

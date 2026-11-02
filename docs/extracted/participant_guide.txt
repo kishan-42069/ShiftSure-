@@ -1,0 +1,200 @@
+--- PAGE 1 ---
+Hackfest Hackathon 2026
+Bengaluru Region - Finale Round
+SAP
+4th November 2026
+Participant Handbook
+
+
+--- PAGE 2 ---
+Why Hackfest 
+In a world where code is becoming commodity, it is no longer a competitive edge for students. At
+SAP , we always see problems from Domain, Tech and Business perspectives. Hackfest is an
+attempt to invigorate the student community, with these principles to solve real world burning
+problems, using this framework. We have been doing Hackfest for Engineering students, but with coding
+becoming a commodity, we see a larger diaspora of students having the ability to participate on
+level playing fields
+Hackfest 2023 Hackfest 2024
+
+--- PAGE 3 ---
+The Hackfest Journey So Far
+
+
+--- PAGE 4 ---
+Timelines
+Final Showcase at 
+New Horizon 
+College of 
+Engineering, 4 
+November 2026
+Building Prototype 
+using SAP Platform -
+26 October-3 
+November 2026
+College Round – 5-
+24 October  
+2026
+Registration for the 
+Hackathon and SAP 
+Learning Hub 
+Student Edition - 24  
+-September- 15 
+October 2026
+
+--- PAGE 5 ---
+Theme 1: Resilient Supply Chains
+ 
+When the world fractures, supply chains must think for themselves. 
+➢ When global supply chains break, the human cost is massive. Delays disrupt life-saving medicine, raise food 
+prices for vulnerable populations, and wipe out incomes for small-scale farmers.
+➢ This supply chain has now  shifted from cost-optimized to resilience-first. Driven by maritime re-routings, 
+dynamic tariff policies, geopolitical shifts, and climate shocks, structural disruption is now a constant reality. 
+Traditional planning tools can no longer keep pace. 
+➢ Supply chain resilience is a top priority for SAP’s global customers. Using industry foundations like SAP IBP , 
+Transportation Management, and Ariba, along with next-gen SAP Joule AI Agents, businesses are shifting toward 
+autonomous, self-healing networks. This Hackfest gives you direct experience in the exact space where 
+enterprise tech is evolving fastest.
+➢ This year's SAP Hackfest challenges you to harness Agentic AI to build supply chains that don't just react, 
+but autonomously sense, adapt, and recover in real time.
+➢ Your solution will leverage a team of specialized AI agents:
+• Sensing & Scenario Agents 
+• Logistics & Inventory Agents 
+• Compliance & Human-in-the-Loop Safeguards
+
+--- PAGE 6 ---
+Theme 2: Inclusive Workforce
+ 
+AI is rewriting who gets to work. The question is whether it rewrites the rules fairly.
+➢ AI is reshaping global employment, turning traditional hiring upside down and creating a $5.5T global skills gap. 
+The challenge is no longer "Will AI take jobs?“ It’s "Who will AI leave behind?“
+➢  Human Capital Management is at the core of SAP’s strategic focus. Through SAP SuccessFactors, the Talent 
+Intelligence Hub, and next-gen Joule AI Agents, SAP is leading the shift toward skills-first hiring, automated 
+talent development, and smart recruiting. This theme isn't abstract. It’s about your future workforce.
+➢ Your challenge is to build AI solutions that include, empower, and upskill. Hackfest teams will design a 
+multi-agent AI ecosystem where below-mentioned specialized agents collaborate to create a fair, skill-first 
+workforce platform:
+• Skills Discovery Agent 
+• Market Intelligence Agent
+• Learning Pathway Agent
+• Inclusive Matching Agent
+• Employer Readiness & Bias Audit Agents 
+• Human-in-the-Loop
+
+--- PAGE 7 ---
+From Idea to Prototype: The Two-Round Process
+Theme 1: Resilient Supply Chains
+Round 1 (Regional College Round): Design Thinking & 
+Business Model (No Code)
+The Challenge: Select a supply chain scenario (e.g., 
+pharma cold chain, disaster relief logistics, or tariff-
+exposed networks).
+The Deliverable: Perform empathy mapping, identify 
+system failure modes, map agent-human interactions, and 
+build a Business Model Canvas using the SAP Learning Hub, 
+student edition
+Round 2 (Grand Finale): Prototyping & Live Demo
+Single Agent Prototype: Build a functional core agent 
+(e.g., a Disruption Sensing or Scenario Planning Agent) 
+using vibe coding and AI frameworks.
+Full System Showcase: Demo an end-to-end multi-agent 
+network simulating a live disruption (e.g., shipping 
+closures or tariff spikes)—showing autonomous rerouting, 
+audit logging, human approval, and SAP Learning Hub, 
+student edition integration.
+Theme 2: Inclusive Workforce
+Round 1 (Regional College Round): Design Thinking & 
+Business Model (No Code)
+The Challenge: Select an inclusion challenge (e.g., 
+reskilling displaced workers, matching persons with 
+disabilities, or supporting women re-entering the 
+workforce).
+The Deliverable: Conduct empathy mapping, identify 
+systemic hiring barriers, design agent-human interaction 
+models, and build a sustainable Business Model Canvas 
+using the SAP Learning Hub, student edition.
+Round 2 (Grand Finale): Prototyping & Live Demo
+Single Agent Prototype: Build a functional core agent 
+(e.g., a Skills Discovery or Learning Pathway Agent) using 
+vibe coding and AI frameworks.
+Full System Showcase: Demo the complete multi-agent 
+"Career Orchestrator" end-to-end via a real-world persona 
+(e.g., a woman re-entering the workforce in a tier-2 city), 
+demonstrating seamless agent collaboration, human-in-
+the-loop safeguards, and SAP Learning Hub, student 
+edition integration.
+
+--- PAGE 8 ---
+Participant Guideline
+1. Teams to show all the artifacts and working prototype based on one of the chosen themes
+2. Participants should primarily use the links shared with them of the SAP platform & system 
+landscape. Can also use other non-SAP tools to build the prototype
+3. Each Team will be given 15 mins in Total (10 Presentation, 5 mins Q & A)
+4. Use the time allotted to the team judiciously, going overboard on time limits will be 
+penalised
+5. Keep the demo related artifacts in one laptop, do not waste time switching laptops during 
+your presentation
+6. Keep the video of the demo ready as backup, you can use the same if your demo doesn’t 
+work
+7. Keep the laptop charged and if there is a special connector required to connect to 
+projector , please bring the same
+
+--- PAGE 9 ---
+Evaluation Criteria
+
+
+--- PAGE 10 ---
+Evaluation Criteria
+
+
+--- PAGE 11 ---
+Jury Members’ Role
+1. Jury members should not favour a certain team, individually help and 
+evaluate the teams to get them to be the best they can be.
+2. Evaluation criteria sheets and briefing will be given to all jury members as 
+the final days approach.
+3. Jury members would need to note:
+• Problem statements are not going to be given, rather themes are given to 
+teams, hence they must:
+A.   Arrive at the problem statement
+B.   Defend the market, feasibility and viability
+
+--- PAGE 12 ---
+Additional Notes 
+1. Prize Money would be, 75k, 50k and 25k INR (For top 3 teams) in the Grand Finale Round on 4th 
+November.
+2. SAP would provide learning resources (SAP Learning Hub (Student’s Edition)) to the teams and 
+students must register and use them. Any team using the learning from there would definitely 
+have an edge during the evaluations. 
+3. Teams do not need to follow a certain presentation template, they can be innovative about the 
+same. 
+4. Just keep in mind that 15 mins of total time will be given - 10 min for teams to present and 5 
+min for Q&A.
+5)  Teams are expected to be in full attendance (all 4 or 5 team members) are to be present on the 
+presentation days.
+6) The Core Team (SAP + NHCE), will take all final decisions and calls on evaluation and other 
+aspects logistic or otherwise for the teams and jury.
+7) Selection of the Top 3 Teams would be decided by SAP based on the Evaluation score sheets from 
+Faculties & Industry Partners
+
+--- PAGE 13 ---
+Learning Assets
+Hands-On Practice Systems
+SAP BTP – Hands-on Practice for Develop extensions with CAP following the SAP BTP Developer's Guide
+SAP Build - SAP Build , SAP Business Application Studio – Sandbox , Advanced SAP UI5 Development
+SAP S/4HANA -SPS07 - SAP HANA Installing and Administering , Provisioning data to SAP HANA Cloud , SAP HANA 
+Cloud - Modeling
+SAP SAC - Exploring SAP Analytics Cloud , SAP Analytics Cloud: Modeling and Data Transformation , SAP Analytics 
+Cloud: Story Design 
+SAP BDC – Applying AI-powered Visualizations and Augmented Analytics to Business Data in SAP Analytics Cloud
+SAP GEN AI– Solve your business problems using prompts and LLMs in SAP Generative AI Hub
+Trial Systems
+SAP S/4HANA- Get Started with the SAP HANA Database Explorer | SAP Tutorials , Get Started with SAP HANA Cloud | 
+SAP Tutorials
+SAP BTP & Build - Create Your First App on Cloud Foundry | SAP Tutorials , Get Started with SAP Business Technology 
+Platform SAP HANA Service | SAP Tutorials , Create an Application with SAP Build Apps | SAP Tutorials
+SAP BDC - SAP Business Data Cloud trial
+
+--- PAGE 14 ---
+Thank You
+
+
