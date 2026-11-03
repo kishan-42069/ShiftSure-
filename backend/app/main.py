@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.database import init_db, SessionLocal
 from app.data.seed_data import seed_database
 from app.routers import workers, scenarios, plans, agents
+from app.agents.llm_adapter import get_llm_mode
 
 app = FastAPI(
     title="ShiftSure API",
@@ -50,11 +51,12 @@ def on_startup():
 
 @app.get("/api/health")
 def health_check():
-    """Quick health check endpoint — confirms the server is running."""
+    """Quick health check — confirms the server is running and reports the active LLM mode."""
     return {
         "status": "online",
         "plant": "Bengaluru Smart Auto Components Plant (Plant BLR-01)",
-        "note": "All data is simulated. ShiftSure does not connect to live SAP systems.",
+        "reasoning_mode": get_llm_mode(),
+        "note": "All workforce data is simulated. LLM output is explanation-only.",
     }
 
 

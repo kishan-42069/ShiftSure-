@@ -1,51 +1,196 @@
 """
-LLM Adapter — Dual Mode: Deterministic (Default) or Live LLM (Optional)
-------------------------------------------------------------------------
-Primary mode:   Deterministic template engine — 100% offline, zero tokens, zero cost.
-Secondary mode: Live LLM (OpenAI, SAP Generative AI Hub) activated ONLY when an API
-                key is present in the environment variable OPENAI_API_KEY or
-                SAP_GENAI_HUB_KEY.
+LLM Adapter — Triple-Mode: SAP GenAI Hub → OpenAI → Deterministic
+------------------------------------------------------------------
+Priority:
+  1. SAP AI Core / Generative AI Hub  (AICORE_* env vars present)
+  2. OpenAI                            (OPENAI_API_KEY present)
+  3. Deterministic template engine     (always — zero tokens, zero cost, offline)
 
-If the live LLM times out (>3 seconds) or throws any error, it automatically falls
-back to the deterministic template — the demo will NEVER crash because of a bad
-internet connection.
+Active mode is reported by get_llm_mode() and exposed at /api/health.
+
+If the live LLM times out (>3 s) or throws any error it falls back silently to
+the next provider, ultimately landing on the deterministic template.  The demo
+will NEVER crash because of a bad internet connection or missing credentials.
+
+Environment variables consumed (all optional):
+  SAP AI Core / Generative AI Hub:
+    AICORE_AUTH_URL          – OAuth2 base URL  (e.g. https://<tenant>.authentication.eu10.hana.ondemand.com)
+    AICORE_CLIENT_ID         – OAuth2 client id
+    AICORE_CLIENT_SECRET     – OAuth2 client secret
+    AICORE_BASE_URL          – AI Core API base (e.g. https://api.ai.prod.eu-central-1.aws.ml.hana.ondemand.com)
+    AICORE_DEPLOYMENT_ID     – Deployment id of the running model
+    AICORE_RESOURCE_GROUP    – Resource group (default: "default")
+    AICORE_MODEL_NAME        – Model name sent in the payload (default: "gpt-4o")
+  OpenAI (legacy / fallback):
+    OPENAI_API_KEY           – Standard OpenAI secret key
 """
 
 import os
 import time
 import json
 import logging
+import threading
+
+import httpx
 
 logger = logging.getLogger(__name__)
 
-# ─── Optional live LLM (only imported if the key is present) ─────────────────
-_OPENAI_KEY = os.getenv("OPENAI_API_KEY", "")
-_SAP_KEY = os.getenv("SAP_GENAI_HUB_KEY", "")
+# ─── Config ──────────────────────────────────────────────────────────────────
 _LLM_TIMEOUT_SECONDS = 3
 
-def _live_llm_available() -> bool:
-    return bool(_OPENAI_KEY or _SAP_KEY)
+# SAP AI Core
+_AICORE_AUTH_URL      = os.getenv("AICORE_AUTH_URL", "")
+_AICORE_CLIENT_ID     = os.getenv("AICORE_CLIENT_ID", "")
+_AICORE_CLIENT_SECRET = os.getenv("AICORE_CLIENT_SECRET", "")
+_AICORE_BASE_URL      = os.getenv("AICORE_BASE_URL", "")
+_AICORE_DEPLOYMENT_ID = os.getenv("AICORE_DEPLOYMENT_ID", "")
+_AICORE_RESOURCE_GROUP = os.getenv("AICORE_RESOURCE_GROUP", "default")
+_AICORE_MODEL_NAME    = os.getenv("AICORE_MODEL_NAME", "gpt-4o")
 
+# OpenAI (secondary)
+_OPENAI_KEY = os.getenv("OPENAI_API_KEY", "")
+
+# ─── Shared system prompt ─────────────────────────────────────────────────────
+_SYSTEM_PROMPT = (
+    "You are ShiftSure, a fair workforce reallocation assistant for a "
+    "manufacturing plant. Be concise (2-3 sentences max), factual, and "
+    "professional. Never invent numbers. Speak in present tense."
+)
+
+# ─── Token cache (thread-safe) ────────────────────────────────────────────────
+_token_lock  = threading.Lock()
+_cached_token: str = ""
+_token_expiry: float = 0.0   # Unix timestamp; 0 means uncached
+
+
+def _sap_configured() -> bool:
+    return bool(
+        _AICORE_AUTH_URL and _AICORE_CLIENT_ID and _AICORE_CLIENT_SECRET
+        and _AICORE_BASE_URL and _AICORE_DEPLOYMENT_ID
+    )
+
+
+def get_llm_mode() -> str:
+    """
+    Returns the active reasoning mode string:
+      "sap_genai_hub"  – SAP AI Core credentials are configured
+      "openai"         – Only OPENAI_API_KEY is configured
+      "deterministic"  – No credentials configured; offline template engine
+    """
+    if _sap_configured():
+        return "sap_genai_hub"
+    if _OPENAI_KEY:
+        return "openai"
+    return "deterministic"
+
+
+# ─── SAP AI Core OAuth2 token ─────────────────────────────────────────────────
+
+def _fetch_token_from_server() -> str:
+    """Request a new OAuth2 client-credentials token from SAP XSUAA. Returns '' on failure."""
+    token_url = _AICORE_AUTH_URL.rstrip("/") + "/oauth/token"
+    try:
+        with httpx.Client(timeout=_LLM_TIMEOUT_SECONDS) as client:
+            resp = client.post(
+                token_url,
+                data={
+                    "grant_type": "client_credentials",
+                    "client_id": _AICORE_CLIENT_ID,
+                    "client_secret": _AICORE_CLIENT_SECRET,
+                },
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+            )
+            resp.raise_for_status()
+            body = resp.json()
+            token  = body.get("access_token", "")
+            # expires_in is in seconds; cache with a 60 s safety margin
+            expires_in = int(body.get("expires_in", 3600))
+            expiry = time.time() + expires_in - 60
+            return token, expiry
+    except Exception as exc:
+        logger.warning("SAP AI Core token fetch failed: %s", exc)
+        return "", 0.0
+
+
+def _get_sap_token(force_refresh: bool = False) -> str:
+    """Return a valid bearer token, refreshing if expired or forced."""
+    global _cached_token, _token_expiry
+    with _token_lock:
+        if force_refresh or not _cached_token or time.time() >= _token_expiry:
+            _cached_token, _token_expiry = _fetch_token_from_server()
+        return _cached_token
+
+
+# ─── SAP AI Core chat completions call ───────────────────────────────────────
+
+def _call_sap_genai_hub(prompt: str) -> str:
+    """
+    POST to SAP AI Core Generative AI Hub chat completions endpoint.
+    Returns the assistant reply text, or '' on any error (no stack traces logged).
+    Retries once on 401 with a fresh token.
+    """
+    token = _get_sap_token()
+    if not token:
+        return ""
+
+    endpoint = (
+        _AICORE_BASE_URL.rstrip("/")
+        + f"/v2/inference/deployments/{_AICORE_DEPLOYMENT_ID}/chat/completions"
+    )
+    payload = {
+        "model": _AICORE_MODEL_NAME,
+        "messages": [
+            {"role": "system", "content": _SYSTEM_PROMPT},
+            {"role": "user",   "content": prompt},
+        ],
+        "temperature": 0.3,
+        "max_tokens":  150,
+    }
+    headers = {
+        "Authorization":    f"Bearer {token}",
+        "AI-Resource-Group": _AICORE_RESOURCE_GROUP,
+        "Content-Type":     "application/json",
+    }
+
+    def _post(tok: str) -> httpx.Response:
+        hdrs = {**headers, "Authorization": f"Bearer {tok}"}
+        with httpx.Client(timeout=_LLM_TIMEOUT_SECONDS) as client:
+            return client.post(endpoint, headers=hdrs, json=payload)
+
+    try:
+        resp = _post(token)
+
+        # 401 → refresh token once and retry
+        if resp.status_code == 401:
+            fresh = _get_sap_token(force_refresh=True)
+            if not fresh:
+                return ""
+            resp = _post(fresh)
+
+        resp.raise_for_status()
+        return resp.json()["choices"][0]["message"]["content"].strip()
+
+    except Exception as exc:
+        logger.warning("SAP GenAI Hub call failed, falling back. Reason: %s", exc)
+        return ""
+
+
+# ─── OpenAI call (secondary provider) ────────────────────────────────────────
 
 def _call_openai(prompt: str) -> str:
-    """Calls OpenAI chat completions endpoint. Returns response text."""
-    import httpx  # already in requirements
+    """Calls OpenAI chat completions. Returns response text or '' on failure."""
     headers = {
         "Authorization": f"Bearer {_OPENAI_KEY}",
-        "Content-Type": "application/json",
+        "Content-Type":  "application/json",
     }
     payload = {
         "model": "gpt-4o-mini",
         "messages": [
-            {"role": "system", "content": (
-                "You are ShiftSure, a fair workforce reallocation assistant for a "
-                "manufacturing plant. Be concise (2-3 sentences max), factual, and "
-                "professional. Never invent numbers. Speak in present tense."
-            )},
-            {"role": "user", "content": prompt},
+            {"role": "system", "content": _SYSTEM_PROMPT},
+            {"role": "user",   "content": prompt},
         ],
         "temperature": 0.3,
-        "max_tokens": 150,
+        "max_tokens":  150,
     }
     try:
         with httpx.Client(timeout=_LLM_TIMEOUT_SECONDS) as client:
@@ -57,24 +202,11 @@ def _call_openai(prompt: str) -> str:
             resp.raise_for_status()
             return resp.json()["choices"][0]["message"]["content"].strip()
     except Exception as exc:
-        logger.warning("OpenAI call failed, using deterministic fallback. Reason: %s", exc)
-        return ""  # empty string → caller uses deterministic template
+        logger.warning("OpenAI call failed, falling back. Reason: %s", exc)
+        return ""
 
 
-def generate_agent_reasoning(agent_name: str, context: dict) -> str:
-    """
-    Entry point for all agent reasoning text.
-    Tries live LLM if key is available. Falls back to deterministic templates
-    gracefully and silently.
-    """
-    if _live_llm_available():
-        prompt = _build_prompt(agent_name, context)
-        live_text = _call_openai(prompt)
-        if live_text:
-            return live_text
-    # deterministic fallback always runs if live LLM not available or failed
-    return _deterministic_template(agent_name, context)
-
+# ─── Public interface (unchanged signature) ───────────────────────────────────
 
 def _build_prompt(agent_name: str, context: dict) -> str:
     """Converts agent context into a focused LLM prompt."""
@@ -88,19 +220,43 @@ def _build_prompt(agent_name: str, context: dict) -> str:
     )
 
 
+def generate_agent_reasoning(agent_name: str, context: dict) -> str:
+    """
+    Entry point for all 7 agent reasoning calls.
+    Priority: SAP GenAI Hub → OpenAI → deterministic templates.
+    Falls back silently on any error — never raises.
+    """
+    prompt = _build_prompt(agent_name, context)
+
+    # 1. SAP AI Core / Generative AI Hub
+    if _sap_configured():
+        live_text = _call_sap_genai_hub(prompt)
+        if live_text:
+            return live_text
+
+    # 2. OpenAI (secondary)
+    if _OPENAI_KEY:
+        live_text = _call_openai(prompt)
+        if live_text:
+            return live_text
+
+    # 3. Deterministic fallback (always works)
+    return _deterministic_template(agent_name, context)
+
+
 # ─── Deterministic Templates (The Reliable Engine) ───────────────────────────
 # Each agent has a hand-crafted template that reads from the context dict and
 # produces real sentences — no AI required.
 
 def _deterministic_template(agent_name: str, context: dict) -> str:
     templates = {
-        "Skills Discovery Agent": _tmpl_skills,
-        "Market Intelligence Agent": _tmpl_market,
-        "Learning Pathway Agent": _tmpl_learning,
-        "Inclusive Matching Agent": _tmpl_matching,
-        "Employer Readiness Agent": _tmpl_readiness,
-        "Bias Audit Agent": _tmpl_bias,
-        "Human-in-the-Loop Safeguard": _tmpl_human,
+        "Skills Discovery Agent":       _tmpl_skills,
+        "Market Intelligence Agent":    _tmpl_market,
+        "Learning Pathway Agent":       _tmpl_learning,
+        "Inclusive Matching Agent":     _tmpl_matching,
+        "Employer Readiness Agent":     _tmpl_readiness,
+        "Bias Audit Agent":             _tmpl_bias,
+        "Human-in-the-Loop Safeguard":  _tmpl_human,
     }
     fn = templates.get(agent_name)
     if fn:
@@ -109,10 +265,10 @@ def _deterministic_template(agent_name: str, context: dict) -> str:
 
 
 def _tmpl_skills(ctx: dict) -> str:
-    worker = ctx.get("worker_name", "the displaced worker")
-    skills = ctx.get("current_skills", [])
+    worker     = ctx.get("worker_name", "the displaced worker")
+    skills     = ctx.get("current_skills", [])
     gap_course = ctx.get("gap_course", "a certified bridge course")
-    match_pct = ctx.get("skill_match_pct", 75)
+    match_pct  = ctx.get("skill_match_pct", 75)
     skills_str = ", ".join(skills[:3]) if skills else "manual assembly and quality inspection"
     return (
         f"Skills Discovery complete for {worker}. "
@@ -125,8 +281,8 @@ def _tmpl_skills(ctx: dict) -> str:
 def _tmpl_market(ctx: dict) -> str:
     internal_cost = ctx.get("internal_cost_inr", 4500)
     external_cost = ctx.get("external_cost_inr", 185000)
-    lead_days = ctx.get("external_lead_days", 28)
-    saving = external_cost - internal_cost
+    lead_days     = ctx.get("external_lead_days", 28)
+    saving        = external_cost - internal_cost
     return (
         f"Market Intelligence report: External recruitment for an equivalent role in "
         f"Bengaluru manufacturing costs ₹{external_cost:,} with a {lead_days}-day hiring lag. "
@@ -137,9 +293,9 @@ def _tmpl_market(ctx: dict) -> str:
 
 def _tmpl_learning(ctx: dict) -> str:
     course_title = ctx.get("course_title", "Robotics Safety & Collaborative Arm Operation")
-    course_code = ctx.get("course_code", "SAP-LH-ROB-101")
-    hours = ctx.get("training_hours", 8)
-    worker = ctx.get("worker_name", "the worker")
+    course_code  = ctx.get("course_code", "SAP-LH-ROB-101")
+    hours        = ctx.get("training_hours", 8)
+    worker       = ctx.get("worker_name", "the worker")
     return (
         f"Learning Pathway Agent selected SAP Learning Hub course: "
         f"'{course_title}' (Course Code: {course_code}, {hours} hours). "
@@ -149,10 +305,10 @@ def _tmpl_learning(ctx: dict) -> str:
 
 
 def _tmpl_matching(ctx: dict) -> str:
-    strategy = ctx.get("strategy", "FAIRNESS_BALANCED")
+    strategy       = ctx.get("strategy", "FAIRNESS_BALANCED")
     workers_matched = ctx.get("workers_matched", 0)
-    fill_rate = ctx.get("fill_rate_pct", 92.5)
-    idle_saved = ctx.get("idle_hours_saved", 168)
+    fill_rate      = ctx.get("fill_rate_pct", 92.5)
+    idle_saved     = ctx.get("idle_hours_saved", 168)
     return (
         f"Inclusive Matching Agent delegated problem to Google OR-Tools CP-SAT solver "
         f"under strategy: {strategy}. "
@@ -163,10 +319,10 @@ def _tmpl_matching(ctx: dict) -> str:
 
 
 def _tmpl_readiness(ctx: dict) -> str:
-    line = ctx.get("destination_line", "LINE-01")
+    line             = ctx.get("destination_line", "LINE-01")
     supervisor_ratio = ctx.get("supervisor_ratio", "1:6")
-    shift_ok = ctx.get("shift_compatible", True)
-    shift_note = "shift schedules are compatible" if shift_ok else "a shift adjustment is required"
+    shift_ok         = ctx.get("shift_compatible", True)
+    shift_note       = "shift schedules are compatible" if shift_ok else "a shift adjustment is required"
     return (
         f"Employer Readiness check for {line}: current supervisor-to-worker ratio is {supervisor_ratio} "
         f"(within the 1:8 safety limit). "
@@ -176,10 +332,10 @@ def _tmpl_readiness(ctx: dict) -> str:
 
 
 def _tmpl_bias(ctx: dict) -> str:
-    disparity = ctx.get("idle_disparity_pct", 4.2)
+    disparity  = ctx.get("idle_disparity_pct", 4.2)
     four_fifths = ctx.get("four_fifths_met", True)
-    flip_rate = ctx.get("counterfactual_flip_rate", 0.0)
-    verdict = "PASSED" if (four_fifths and flip_rate == 0.0) else "ADVISORY FLAGGED"
+    flip_rate  = ctx.get("counterfactual_flip_rate", 0.0)
+    verdict    = "PASSED" if (four_fifths and flip_rate == 0.0) else "ADVISORY FLAGGED"
     return (
         f"Bias Audit Agent report: Inter-group idle disparity is {disparity}% "
         f"(threshold: 15%) — {verdict}. "
@@ -191,8 +347,8 @@ def _tmpl_bias(ctx: dict) -> str:
 
 def _tmpl_human(ctx: dict) -> str:
     plan_id = ctx.get("plan_id", "PLAN-C")
-    status = ctx.get("status", "PENDING_APPROVAL")
-    worker = ctx.get("worker_name", "the worker")
+    status  = ctx.get("status", "PENDING_APPROVAL")
+    worker  = ctx.get("worker_name", "the worker")
     return (
         f"Human-in-the-Loop Safeguard: {plan_id} is now in {status} state. "
         f"Plant Manager authorization is required before any worker is moved. "
