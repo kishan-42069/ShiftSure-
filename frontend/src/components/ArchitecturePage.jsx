@@ -116,8 +116,8 @@ export default function ArchitecturePage() {
         </div>
         <div className="sap-integration-grid">
           {[
-            { Icon: Database, color: 'var(--accent)', title: 'SAP SuccessFactors', badge: 'OData REST API', body: 'Integrates with Employee Central for worker records and the Opportunity Marketplace skills ontology for historical task proficiencies and role hierarchies.' },
-            { Icon: BookOpen, color: 'var(--green)',  title: 'SAP Learning Hub',   badge: 'SAP Student Edition', body: 'Queries certified micro-credential curricula (Robotics Safety, CNC Setup) and enrolls displaced operators directly upon manager plan approval.' },
+            { Icon: Database, color: 'var(--accent)', title: 'SAP SuccessFactors', badge: 'Conceptual', body: 'Future mapping target for employee profiles, skills, and internal opportunity records. No live SuccessFactors connection is configured in this prototype.' },
+            { Icon: BookOpen, color: 'var(--green)',  title: 'SAP Learning Hub',   badge: 'Simulated', body: 'Learning pathways are represented in the prototype. Course suggestions and enrollment are not connected to SAP Learning Hub.' },
             { Icon: Lock,     color: 'var(--orange)', title: 'SAP S/4HANA Mfg',   badge: 'BAPI / RFC Event Sync', body: 'Feeds optimal shift rosters and worker qualification flags into Production Planning (PP) and Plant Maintenance (PM) work centers.' },
           ].map(({ Icon, color, title, badge, body }) => (
             <div key={title} className="sap-card">
